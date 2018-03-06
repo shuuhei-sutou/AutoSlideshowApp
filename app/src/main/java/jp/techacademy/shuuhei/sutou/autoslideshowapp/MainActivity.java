@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     TextView mTimerText;
     double mTimerSec = 0.0;
     int count = 0;
+    Cursor cursor = null;
 
     Handler mHandler = new Handler();
 
@@ -50,51 +51,61 @@ public class MainActivity extends AppCompatActivity {
         mStartStopButton = (Button) findViewById(R.id.start_stop_button);
         mPrevButton = (Button) findViewById(R.id.prev_button);
         mNextButton = (Button) findViewById(R.id.next_button);
-        viewFlipper = (ViewFlipper) findViewById(R.id.flipper);
 
         mStartStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                viewFlipper = new ViewFlipper(getApplicationContext());
-                //自動でスライドショーを始める
-                viewFlipper.setAutoStart(false);
-                //スライドショーの感覚を指定する
-                viewFlipper.setFlipInterval(1000);
+                if((count % 2) == 0 ){
+                    if (mTimer == null) {
+                        getContentsInfo();
+                        mTimer = new Timer();
+                        mTimer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
 
+                                mHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
 
-                Log.d("count", "" + count + "");
-                if ((count % 2) == 0) {
-                    viewFlipper.startFlipping();
-                } else {
-                    viewFlipper.stopFlipping();
+                                    }
+                                });
+                            }
+                        }, 200, 200);
+                    }
+                    mStartStopButton.setText("停止");
+                    count += 1;
                 }
-                count += 1;
-                //ViewFlipperの生成
-                Log.d("aviewFlipper", "" + viewFlipper + "");
+                else{
+                    mStartStopButton.setText("再生");
+                    count += 1;
 
+                }
 
-                //自動でスライドショーを始める
-                viewFlipper.setAutoStart(false);
-                //スライドショーの感覚を指定する
-                viewFlipper.setFlipInterval(1000);
-                Log.d("bviewFlipper", "" + viewFlipper + "");
             }
         });
 
         mPrevButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                viewFlipper.showPrevious();
+                if (mTimer != null) {
+                    mTimer.cancel();
+                    mTimer = null;
+                }
             }
         });
 
         mNextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                viewFlipper.showNext();
+                mTimerSec = 0.0;
+                mTimerText.setText(String.format("%.1f", mTimerSec));
+
+                if (mTimer != null) {
+                    mTimer.cancel();
+                    mTimer = null;
+                }
             }
         });
-
 
 
         // Android 6.0以降の場合
@@ -128,27 +139,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getContentsInfo() {
-
-        // 画像の情報を取得する
-        ContentResolver resolver = getContentResolver();
-        Cursor cursor = resolver.query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, // データの種類
-                null, // 項目(null = 全項目)
-                null, // フィルタ条件(null = フィルタなし)
-                null, // フィルタ用パラメータ
-                null // ソート (null ソートなし)
-        );
-
+        Log.d("ANDROID", "URI1 : " );
+        Log.d("cursor", " " + cursor + "" );
+        if (cursor == null) {
+            // 画像の情報を取得する
+            ContentResolver resolver = getContentResolver();
+            cursor = resolver.query(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, // データの種類
+                    null, // 項目(null = 全項目)
+                    null, // フィルタ条件(null = フィルタなし)
+                    null, // フィルタ用パラメータ
+                    null // ソート (null ソートなし)
+            );
+        }
+        Log.d("ANDROID", "URI2 : " );
         if (cursor.moveToFirst()) {
+            do {
             int fieldIndex = cursor.getColumnIndex(MediaStore.Images.Media._ID);
             Long id = cursor.getLong(fieldIndex);
             Uri imageUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
-
+                Log.d("ANDROID", "URI3 : " );
             ImageView imageVIew = (ImageView) findViewById(R.id.imageView);
             imageVIew.setImageURI(imageUri);
-
+                Log.d("ANDROID", "URI4 : " );
+            } while (cursor.moveToNext());
+            Log.d("ANDROID", "URI5 : " );
         }
+        Log.d("ANDROID", "URI6 : " );
         cursor.close();
+        cursor = null;
+        Log.d("ANDROID", "URI7 : " );
     }
 }
 
