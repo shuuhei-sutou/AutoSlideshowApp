@@ -7,20 +7,17 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.ViewFlipper;
 import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.pm.PackageManager;
-
+import android.widget.Toast;
 
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
-
-
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -31,10 +28,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST_CODE = 100;
 
     Timer mTimer;
-    TextView mTimerText;
-    double mTimerSec = 0.0;
     int count = 0;
-    Cursor cursor = null;
+    Cursor cursor;
 
     Handler mHandler = new Handler();
 
@@ -47,7 +42,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mTimerText = (TextView) findViewById(R.id.timer);
         mStartStopButton = (Button) findViewById(R.id.start_stop_button);
         mPrevButton = (Button) findViewById(R.id.prev_button);
         mNextButton = (Button) findViewById(R.id.next_button);
@@ -55,9 +49,9 @@ public class MainActivity extends AppCompatActivity {
         mStartStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 if((count % 2) == 0 ){
                     if (mTimer == null) {
-                        getContentsInfo();
                         mTimer = new Timer();
                         mTimer.schedule(new TimerTask() {
                             @Override
@@ -66,17 +60,27 @@ public class MainActivity extends AppCompatActivity {
                                 mHandler.post(new Runnable() {
                                     @Override
                                     public void run() {
-
+                                        StartStop();
                                     }
                                 });
                             }
-                        }, 200, 200);
+                        }, 2000, 2000);
+
                     }
                     mStartStopButton.setText("停止");
+                    mPrevButton.setEnabled(false);
+                    mNextButton.setEnabled(false);
+
                     count += 1;
                 }
                 else{
+                    if (mTimer != null) {
+                        mTimer.cancel();
+                        mTimer = null;
+                    }
                     mStartStopButton.setText("再生");
+                    mPrevButton.setEnabled(true);
+                    mNextButton.setEnabled(true);
                     count += 1;
 
                 }
@@ -87,26 +91,16 @@ public class MainActivity extends AppCompatActivity {
         mPrevButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mTimer != null) {
-                    mTimer.cancel();
-                    mTimer = null;
-                }
+                Prev();
             }
         });
 
         mNextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mTimerSec = 0.0;
-                mTimerText.setText(String.format("%.1f", mTimerSec));
-
-                if (mTimer != null) {
-                    mTimer.cancel();
-                    mTimer = null;
-                }
+                Next();
             }
         });
-
 
         // Android 6.0以降の場合
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -116,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
                 getContentsInfo();
             } else {
                 // 許可されていないので許可ダイアログを表示する
+                Toast.makeText(this,"許可してください",Toast.LENGTH_SHORT).show();
                 requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSIONS_REQUEST_CODE);
             }
             // Android 5系以下の場合
@@ -138,37 +133,70 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void getContentsInfo() {
-        Log.d("ANDROID", "URI1 : " );
-        Log.d("cursor", " " + cursor + "" );
-        if (cursor == null) {
-            // 画像の情報を取得する
-            ContentResolver resolver = getContentResolver();
-            cursor = resolver.query(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, // データの種類
-                    null, // 項目(null = 全項目)
-                    null, // フィルタ条件(null = フィルタなし)
-                    null, // フィルタ用パラメータ
-                    null // ソート (null ソートなし)
-            );
-        }
-        Log.d("ANDROID", "URI2 : " );
-        if (cursor.moveToFirst()) {
-            do {
-            int fieldIndex = cursor.getColumnIndex(MediaStore.Images.Media._ID);
-            Long id = cursor.getLong(fieldIndex);
-            Uri imageUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
-                Log.d("ANDROID", "URI3 : " );
-            ImageView imageVIew = (ImageView) findViewById(R.id.imageView);
-            imageVIew.setImageURI(imageUri);
-                Log.d("ANDROID", "URI4 : " );
-            } while (cursor.moveToNext());
-            Log.d("ANDROID", "URI5 : " );
-        }
-        Log.d("ANDROID", "URI6 : " );
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
         cursor.close();
-        cursor = null;
-        Log.d("ANDROID", "URI7 : " );
     }
+
+    private void first(){
+        first2();
+        cursor.moveToFirst();
+        field();
+
+    }
+
+    private void StartStop(){
+            if(cursor.moveToNext()){
+                field();
+            }else{
+                cursor.moveToFirst();
+                field();
+            }
+    }
+
+    private void Prev(){
+        if(cursor.moveToPrevious()){
+            field();
+        }else{
+            cursor.moveToLast();
+            field();
+        }
+    }
+
+    private void Next(){
+        if(cursor.moveToNext()){
+            field();
+        }else{
+            cursor.moveToFirst();
+            field();
+        }
+    }
+
+    private void getContentsInfo() {
+        first();
+    }
+
+    private void  first2(){
+        // 画像の情報を取得する
+        ContentResolver resolver = getContentResolver();
+        cursor = resolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, // データの種類
+                null, // 項目(null = 全項目)
+                null, // フィルタ条件(null = フィルタなし)
+                null, // フィルタ用パラメータ
+                null // ソート (null ソートなし)
+        );
+    }
+
+    private void field(){
+        int fieldIndex = cursor.getColumnIndex(MediaStore.Images.Media._ID);
+        Long id = cursor.getLong(fieldIndex);
+        Log.d("id", "" + id + "");
+        Uri imageUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
+        ImageView imageVIew = (ImageView) findViewById(R.id.imageView);
+        imageVIew.setImageURI(imageUri);
+    }
+
 }
 
