@@ -147,7 +147,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void StartStop(){
-            if(cursor.moveToNext()){
+            if(cursor == null){
+
+            }else if(cursor.moveToNext()){
                 field();
             }else{
                 cursor.moveToFirst();
@@ -156,7 +158,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void Prev(){
-        if(cursor.moveToPrevious()){
+        if(cursor == null){
+
+        }else if(cursor.moveToPrevious()){
             field();
         }else{
             cursor.moveToLast();
@@ -165,7 +169,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void Next(){
-        if(cursor.moveToNext()){
+        if(cursor == null){
+
+        }else if(cursor.moveToNext()){
             field();
         }else{
             cursor.moveToFirst();
